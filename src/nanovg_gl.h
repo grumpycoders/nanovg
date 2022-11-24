@@ -41,12 +41,15 @@ enum NVGcreateFlags {
 #  define NANOVG_GL3 1
 #  define NANOVG_GL_IMPLEMENTATION 1
 #  define NANOVG_GL_USE_UNIFORMBUFFER 1
+#  define NANOVG_GL_USE_VBO 1
 #elif defined NANOVG_GLES2_IMPLEMENTATION
 #  define NANOVG_GLES2 1
 #  define NANOVG_GL_IMPLEMENTATION 1
 #elif defined NANOVG_GLES3_IMPLEMENTATION
 #  define NANOVG_GLES3 1
 #  define NANOVG_GL_IMPLEMENTATION 1
+#  define NANOVG_GL_USE_UNIFORMBUFFER 1
+#  define NANOVG_GL_USE_VBO 1
 #endif
 
 #define NANOVG_GL_USE_STATE_FILTER (1)
@@ -236,7 +239,7 @@ struct GLNVGcontext {
 	int ctextures;
 	int textureId;
 	GLuint vertBuf;
-#if defined NANOVG_GL3
+#if NANOVG_GL_USE_VBO
 	GLuint vertArr;
 #endif
 #if NANOVG_GL_USE_UNIFORMBUFFER
@@ -691,7 +694,7 @@ static int glnvg__renderCreate(void* uptr)
 	glnvg__getUniforms(&gl->shader);
 
 	// Create dynamic vertex array
-#if defined NANOVG_GL3
+#if NANOVG_GL_USE_VBO
 	glGenVertexArrays(1, &gl->vertArr);
 #endif
 	glGenBuffers(1, &gl->vertBuf);
@@ -1217,7 +1220,7 @@ static void glnvg__renderFlush(void* uptr)
 #endif
 
 		// Upload vertex data
-#if defined NANOVG_GL3
+#if NANOVG_GL_USE_VBO
 		glBindVertexArray(gl->vertArr);
 #endif
 		glBindBuffer(GL_ARRAY_BUFFER, gl->vertBuf);
@@ -1250,7 +1253,7 @@ static void glnvg__renderFlush(void* uptr)
 
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
-#if defined NANOVG_GL3
+#if NANOVG_GL_USE_VBO
 		glBindVertexArray(0);
 #endif
 		glDisable(GL_CULL_FACE);
@@ -1534,11 +1537,11 @@ static void glnvg__renderDelete(void* uptr)
 
 	glnvg__deleteShader(&gl->shader);
 
-#if NANOVG_GL3
 #if NANOVG_GL_USE_UNIFORMBUFFER
 	if (gl->fragBuf != 0)
 		glDeleteBuffers(1, &gl->fragBuf);
 #endif
+#if NANOVG_GL_USE_VBO
 	if (gl->vertArr != 0)
 		glDeleteVertexArrays(1, &gl->vertArr);
 #endif
