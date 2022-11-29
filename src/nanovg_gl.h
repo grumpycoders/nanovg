@@ -524,7 +524,11 @@ static int glnvg__renderCreate(void* uptr)
 		"#version 100\n"
 		"#define NANOVG_GL2 1\n"
 #elif defined NANOVG_GLES3
+#ifdef __APPLE__
+		"#version 410\n"
+#else
 		"#version 300 es\n"
+#endif
 		"#define NANOVG_GL3 1\n"
 #endif
 
