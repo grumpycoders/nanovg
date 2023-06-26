@@ -240,6 +240,7 @@ struct GLNVGcontext {
 	int textureId;
 	GLuint vertBuf;
 #if NANOVG_GL_USE_VBO
+	GLuint ownedVertArr;
 	GLuint vertArr;
 #endif
 #if NANOVG_GL_USE_UNIFORMBUFFER
@@ -699,7 +700,8 @@ static int glnvg__renderCreate(void* uptr)
 
 	// Create dynamic vertex array
 #if NANOVG_GL_USE_VBO
-	glGenVertexArrays(1, &gl->vertArr);
+	glGenVertexArrays(1, &gl->ownedVertArr);
+	gl->vertArr = gl->ownedVertArr;
 #endif
 	glGenBuffers(1, &gl->vertBuf);
 
@@ -1546,8 +1548,8 @@ static void glnvg__renderDelete(void* uptr)
 		glDeleteBuffers(1, &gl->fragBuf);
 #endif
 #if NANOVG_GL_USE_VBO
-	if (gl->vertArr != 0)
-		glDeleteVertexArrays(1, &gl->vertArr);
+	if (gl->ownedVertArr != 0)
+		glDeleteVertexArrays(1, &gl->ownedVertArr);
 #endif
 	if (gl->vertBuf != 0)
 		glDeleteBuffers(1, &gl->vertBuf);
@@ -1662,6 +1664,57 @@ GLuint nvglImageHandleGLES3(NVGcontext* ctx, int image)
 	GLNVGcontext* gl = (GLNVGcontext*)nvgInternalParams(ctx)->userPtr;
 	GLNVGtexture* tex = glnvg__findTexture(gl, image);
 	return tex->tex;
+}
+
+struct GLNVGsubContext
+{
+	NVGcontext* ctx;
+	GLNVGcontext* gl;
+#if NANOVG_GL_USE_VBO
+	GLuint vertArr;
+#endif
+};
+typedef struct GLNVGsubContext GLNVGsubContext;
+
+void* nvgCreateSubContextGL(NVGcontext* ctx)
+{
+	GLNVGsubContext* subCtx = (GLNVGsubContext*)malloc(sizeof(GLNVGsubContext));
+	if (subCtx == NULL) return NULL;
+	memset(subCtx, 0, sizeof(GLNVGsubContext));
+
+	subCtx->ctx = ctx;
+	subCtx->gl = (GLNVGcontext*)nvgInternalParams(ctx)->userPtr;
+#if NANOVG_GL_USE_VBO
+	glGenVertexArrays(1, &subCtx->vertArr);
+#endif
+
+	return subCtx;
+}
+
+void nvgSwitchMainContextGL(NVGcontext* ctx)
+{
+	GLNVGcontext* gl = (GLNVGcontext*)nvgInternalParams(ctx)->userPtr;
+#if NANOVG_GL_USE_VBO
+	gl->vertArr = gl->ownedVertArr;
+#endif
+}
+
+void nvgSwitchSubContextGL(NVGcontext* ctx, void* subCtx)
+{
+	GLNVGsubContext* glSubCtx = (GLNVGsubContext*)subCtx;
+	GLNVGcontext* gl = (GLNVGcontext*)nvgInternalParams(ctx)->userPtr;
+#if NANOVG_GL_USE_VBO
+	gl->vertArr = glSubCtx->vertArr;
+#endif
+}
+
+void nvgDeleteSubContextGL(void* subCtx)
+{
+	GLNVGsubContext* glSubCtx = (GLNVGsubContext*)subCtx;
+#if NANOVG_GL_USE_VBO
+	glDeleteVertexArrays(1, &glSubCtx->vertArr);
+#endif
+	free(glSubCtx);
 }
 
 #endif /* NANOVG_GL_IMPLEMENTATION */
